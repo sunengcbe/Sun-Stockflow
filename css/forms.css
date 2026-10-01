@@ -1,0 +1,114 @@
+/* ==========================================================
+   forms.css: form fields, dropdowns, buttons groups, filters,
+   photo box and the job assignment layout.
+   ========================================================== */
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-card { max-width: 1100px; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field-label { font-weight: 700; }
+.req { color: var(--danger); }
+.field-hint { font-size: .85rem; color: var(--muted); }
+.field-error { color: var(--danger); font-weight: 600; font-size: .92rem; min-height: 1.2em; }
+.field.invalid .input, .field.invalid .combo-input { border-color: var(--danger); }
+
+.input, .select, .textarea, .combo-input {
+  width: 100%; min-height: 52px; padding: 12px 14px; background: var(--surface);
+  border: 2px solid var(--border); border-radius: var(--radius-sm); transition: border-color .15s, box-shadow .15s;
+}
+.textarea { min-height: 120px; resize: vertical; }
+.input:focus, .select:focus, .textarea:focus, .combo-input:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+/* ---------- Searchable drop-down ("combo") ---------- */
+.combo { position: relative; }
+.combo-input { padding-right: 46px; cursor: text; }
+.combo-arrow { position: absolute; right: 6px; top: 6px; width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); border-radius: 8px; }
+.combo-list {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 6px); max-height: 300px; overflow-y: auto;
+  background: var(--surface); border: 2px solid var(--primary); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  list-style: none; margin: 0; padding: 6px; display: none;
+}
+.combo.open .combo-list { display: block; }
+.combo-item { padding: 12px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.combo-item small { display: block; font-weight: 400; color: var(--muted); }
+.combo-item:hover, .combo-item.active { background: var(--surface-2); }
+.combo-item.add { color: var(--primary); font-weight: 800; border-bottom: 1px solid var(--border); border-radius: 8px 8px 0 0; margin-bottom: 4px; }
+.combo-empty { padding: 12px 14px; color: var(--muted); }
+
+/* ---------- Big choice buttons (Sides ONE / TWO, Priority) ---------- */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.seg-btn {
+  min-height: 56px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  background: var(--surface); font-weight: 800; font-size: 1.05rem; letter-spacing: .05em;
+  transition: background .15s, border-color .15s;
+}
+.seg-btn:hover { border-color: var(--primary); }
+.seg-btn.selected { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.seg-btn.selected.urgent { background: #dc2626; border-color: #dc2626; color: #fff; }
+.seg-btn[aria-pressed="true"]::before { content: "✓ "; }
+
+/* ---------- Photo box ---------- */
+.photo-box { border: 2px dashed var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.photo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.photo-preview { display: flex; align-items: center; gap: 14px; }
+.photo-preview img { width: 120px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); cursor: zoom-in; }
+.photo-input { display: none; }
+
+/* ---------- Save bar ---------- */
+.form-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.form-actions .btn-primary { min-width: 260px; }
+
+/* ---------- Search / filter bars ---------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+.search-wrap { position: relative; flex: 1 1 280px; }
+.search-wrap .icon { position: absolute; left: 14px; top: 15px; color: var(--muted); }
+.search-input { width: 100%; min-height: 52px; padding: 12px 14px 12px 46px; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.search-input:focus { outline: none; border-color: var(--primary); }
+.toolbar .select { width: auto; min-width: 170px; }
+.filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; padding: 18px; }
+.result-count { color: var(--muted); font-weight: 600; margin-bottom: 12px; }
+
+/* ---------- History list ---------- */
+.history-list { display: flex; flex-direction: column; gap: 10px; }
+.history-row { display: grid; grid-template-columns: 180px 150px 1fr auto; gap: 14px; align-items: center; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.history-time { font-size: .9rem; color: var(--muted); font-weight: 600; }
+.history-main { min-width: 0; }
+.history-main strong { word-break: break-word; }
+.history-sub { font-size: .88rem; color: var(--muted); word-break: break-word; }
+
+/* ---------- Job assignment page ---------- */
+.assign-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.assign-list { display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 290px); overflow-y: auto; padding: 4px; }
+.selectable { cursor: pointer; border: 2px solid var(--border); }
+.selectable.selected { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 25%, transparent); }
+.assign-panel { position: sticky; top: calc(var(--header-h) + 16px); display: flex; flex-direction: column; gap: 18px; }
+.selected-summary { padding: 16px; background: var(--surface-2); border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+.panel-placeholder { text-align: center; color: var(--muted); padding: 40px 10px; }
+
+/* ---------- Machines page ---------- */
+.simple-list { display: flex; flex-direction: column; gap: 10px; }
+.simple-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; flex-wrap: wrap; }
+.simple-row .grow { flex: 1; min-width: 160px; font-weight: 700; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.inline-form .field { flex: 1 1 220px; }
+
+/* ---------- Settings / data pages ---------- */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; max-width: 1100px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 6px 0; }
+.btn-stack { display: flex; flex-direction: column; gap: 12px; }
+.danger-zone { border-color: var(--out-border); }
+
+@media (max-width: 1000px) {
+  .assign-layout { grid-template-columns: 1fr; }
+  .assign-panel { position: static; }
+  .assign-list { max-height: none; }
+}
+@media (max-width: 760px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .history-row { grid-template-columns: 1fr; gap: 6px; }
+  .toolbar .select { width: 100%; }
+  .form-actions .btn-primary { width: 100%; min-width: 0; }
+}
