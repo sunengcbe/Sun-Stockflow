@@ -1,0 +1,201 @@
+rules_version = '2';
+
+/* ==========================================================
+   SUN - STOCK FLOW  |  FIRESTORE SECURITY RULES
+   These rules run on Google's servers. Nobody can bypass them,
+   even by editing the website code in their browser.
+
+   >>> OWNER EMAILS: edit the list in ownerList() below so it
+   >>> matches ownerEmails in js/config.js (lowercase only).
+   ========================================================== */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ---------- WHO IS THIS PERSON? ---------- */
+
+    function ownerList() {
+      return [
+        'sunengcbe@gmail.com'
+        // , 'another.owner@gmail.com'
+      ];
+    }
+
+    function signedIn() {
+      return request.auth != null
+          && request.auth.token.email != null
+          && request.auth.token.email_verified == true;
+    }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function roleDocPath() { return /databases/$(database)/documents/users/$(myEmail()); }
+
+    function isOwner() { return signedIn() && myEmail() in ownerList(); }
+    function isStaff() {
+      return signedIn() && !isOwner() && exists(roleDocPath())
+          && get(roleDocPath()).data.role == 'staff';
+    }
+    function isOperator() {
+      return signedIn() && !isOwner() && exists(roleDocPath())
+          && get(roleDocPath()).data.role == 'operator';
+    }
+    function isStaffOrOwner() { return isOwner() || isStaff(); }
+    function isAnyUser() { return isOwner() || isStaff() || isOperator(); }
+
+    /* ---------- SMALL HELPERS ---------- */
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Text fields must be real text. Quantity must be TEXT (a string), never a number.
+    function validStockText(d) {
+      return d.supplierName is string && d.supplierName.size() > 0 && d.supplierName.size() <= 200
+          && d.threadForm is string && d.threadForm.size() > 0 && d.threadForm.size() <= 200
+          && d.materialType is string && d.materialType.size() > 0 && d.materialType.size() <= 200
+          && d.quantity is string && d.quantity.size() > 0 && d.quantity.size() <= 100;
+    }
+
+    /* ---------- users: who is staff / operator ---------- */
+    match /users/{userId} {
+      // You may read your own entry (to find your role). Owners may read all.
+      allow get: if signedIn() && (isOwner() || userId == myEmail());
+      allow list: if isOwner();
+      // Only owners decide roles (the app writes them when an owner signs in).
+      allow create, update: if isOwner() && request.resource.data.role in ['staff', 'operator'];
+      allow delete: if isOwner();
+    }
+
+    /* ---------- stocks ---------- */
+    match /stocks/{stockId} {
+      allow read: if isStaffOrOwner();
+
+      // New stock always starts as IN with no job.
+      allow create: if isStaffOrOwner()
+                    && validStockText(request.resource.data)
+                    && request.resource.data.status == 'IN'
+                    && request.resource.data.jobAssigned == false
+                    && request.resource.data.hasPhoto is bool
+                    && request.resource.data.createdBy == myEmail();
+
+      allow update: if isOwner() && request.resource.data.quantity is string
+                    || isStaff() && staffMayUpdateStock();
+
+      // Staff may delete only stock that is still IN. Owner may delete any (data cleanup).
+      allow delete: if isOwner() || (isStaff() && resource.data.status == 'IN');
+    }
+
+    /* What STAFF may do to a stock. Anything else is refused.
+       Staff can NEVER set job fields (they may only clear them on Undo Rolled). */
+    function staffMayUpdateStock() {
+      let d = request.resource.data;
+      let old = resource.data;
+      let changed = changedKeys();
+      return d.updatedBy == myEmail() && (
+
+        // Edit details (stock must be IN; status unchanged)
+        (old.status == 'IN' && d.status == 'IN' && validStockText(d)
+          && changed.hasOnly(['supplierName', 'supplierPhone', 'threadForm', 'materialType',
+                              'threadLength', 'sides', 'quantity', 'description',
+                              'hasPhoto', 'updatedBy', 'updatedAt']))
+
+        // Roll: IN -> ROLLED
+        || (old.status == 'IN' && d.status == 'ROLLED'
+          && changed.hasOnly(['status', 'rolledAt', 'rolledBy', 'updatedBy', 'updatedAt']))
+
+        // Undo Rolled: ROLLED -> IN (job fields may only be cleared)
+        || (old.status == 'ROLLED' && d.status == 'IN'
+          && d.jobAssigned == false && d.jobId == null
+          && changed.hasOnly(['status', 'rolledAt', 'rolledBy', 'updatedBy', 'updatedAt',
+                              'jobAssigned', 'jobId', 'assignedMachineId', 'assignedMachineName',
+                              'assignedOperatorId', 'assignedOperatorName', 'assignedAt',
+                              'expectedDuration', 'priority']))
+
+        // Stock Out: ROLLED -> OUT
+        || (old.status == 'ROLLED' && d.status == 'OUT'
+          && changed.hasOnly(['status', 'stockOutAt', 'stockedOutBy', 'updatedBy', 'updatedAt']))
+
+        // Undo Stock Out: OUT -> ROLLED
+        || (old.status == 'OUT' && d.status == 'ROLLED'
+          && changed.hasOnly(['status', 'stockOutAt', 'stockedOutBy', 'updatedBy', 'updatedAt']))
+      );
+    }
+
+    /* ---------- stockPhotos ---------- */
+    match /stockPhotos/{photoId} {
+      allow read: if isStaffOrOwner();
+      allow create, update: if isStaffOrOwner()
+                            && request.resource.data.dataUrl is string
+                            && request.resource.data.dataUrl.size() < 950000;
+      allow delete: if isStaffOrOwner();
+    }
+
+    /* ---------- stockHistory (movement log: add only, never edited) ---------- */
+    match /stockHistory/{historyId} {
+      allow read: if isStaffOrOwner();
+      allow create: if isStaffOrOwner()
+                    && request.resource.data.userEmail == myEmail()
+                    && request.resource.data.timestamp == request.time
+                    && request.resource.data.action in ['STOCK_IN', 'ROLLED', 'UNDO_ROLLED', 'STOCK_OUT',
+                         'UNDO_STOCK_OUT', 'EDITED', 'DELETED', 'JOB_ASSIGNED', 'JOB_UPDATED'];
+      allow update: if false;
+      allow delete: if isOwner();   // data cleanup only
+    }
+
+    /* ---------- suppliers / thread forms / material types ---------- */
+    match /suppliers/{id} {
+      allow read: if isStaffOrOwner();
+      allow create: if isStaffOrOwner() && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80;
+      allow update, delete: if isOwner();
+    }
+    match /threadForms/{id} {
+      allow read: if isStaffOrOwner();
+      allow create: if isStaffOrOwner() && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80;
+      allow update, delete: if isOwner();
+    }
+    match /materialTypes/{id} {
+      allow read: if isStaffOrOwner();
+      allow create: if isStaffOrOwner() && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80;
+      allow update, delete: if isOwner();
+    }
+
+    /* ---------- machines and operators: everyone signed in may read, ONLY owner may change ---------- */
+    match /machines/{id} {
+      allow read: if isAnyUser();
+      allow write: if isOwner();
+    }
+    match /operators/{id} {
+      allow read: if isAnyUser();
+      allow write: if isOwner();
+    }
+
+    /* ---------- jobs (the machine schedule) ---------- */
+    match /jobs/{jobId} {
+      allow read: if isAnyUser();             // operators may read the schedule
+      allow create, delete: if isOwner();
+      allow update: if isOwner() || (isStaff() && staffMayUpdateJob());
+    }
+
+    /* Staff cannot assign or reorder jobs. They may only:
+       - close a waiting job when its stock is Rolled or Deleted (DONE / CANCELLED)
+       - keep the displayed stock details in step when they edit a stock */
+    function staffMayUpdateJob() {
+      let d = request.resource.data;
+      let old = resource.data;
+      let changed = changedKeys();
+      return
+        (d.status == old.status
+          && changed.hasOnly(['supplierName', 'threadForm', 'materialType', 'quantity']))
+        ||
+        (old.status == 'QUEUED' && d.status in ['DONE', 'CANCELLED'] && d.closedBy == myEmail()
+          && changed.hasOnly(['status', 'closedAt', 'closedBy', 'closeReason']));
+    }
+
+    /* ---------- everything else is blocked ---------- */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

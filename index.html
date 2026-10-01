@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <title>Sun - Stock Flow</title>
+
+  <!-- Applies the saved dark/light theme before the page paints (prevents a flash) -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("sunTheme");
+        if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/cards.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <link rel="stylesheet" href="css/schedule.css" />
+</head>
+<body>
+  <noscript><p style="padding:24px">Please turn on JavaScript to use Sun - Stock Flow.</p></noscript>
+
+  <!-- 1. Loading -->
+  <div id="loadingScreen" class="screen-center">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loadingText">Loading…</p>
+  </div>
+
+  <!-- 2. Login -->
+  <main id="loginScreen" class="screen-center" hidden>
+    <div class="login-card">
+      <svg class="login-logo" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/>
+      </svg>
+      <h1 class="login-title">Sun Engineering Works</h1>
+      <p class="login-sub">Stock Flow</p>
+      <button id="btnGoogle" class="btn btn-google btn-lg btn-block" type="button">
+        <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+          <path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/>
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <p id="loginError" class="field-error" role="alert"></p>
+    </div>
+  </main>
+
+  <!-- 3. Not allowed -->
+  <main id="deniedScreen" class="screen-center" hidden>
+    <div class="login-card">
+      <h1 class="login-title">Access denied</h1>
+      <p id="deniedMessage" class="denied-text"></p>
+      <p class="muted">Signed in as <strong id="deniedEmail"></strong></p>
+      <button id="btnDeniedSignOut" class="btn btn-secondary btn-lg btn-block" type="button">Sign out / use another account</button>
+    </div>
+  </main>
+
+  <!-- 4. The app (header, menu and pages are built by js/ui.js) -->
+  <div id="appShell" hidden></div>
+
+  <div id="modalRoot"></div>
+  <div id="toastRoot" aria-live="polite"></div>
+
+  <!-- Libraries (Firebase + Excel export) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    if (typeof firebase === "undefined") {
+      document.getElementById("loadingText").textContent = "Could not load Firebase. Check the internet connection and reload.";
+    }
+  </script>
+
+  <!-- Our code (order matters: later files use earlier ones) -->
+  <script src="js/config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/permissions.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/suppliers.js"></script>
+  <script src="js/operators.js"></script>
+  <script src="js/stocks.js"></script>
+  <script src="js/stock-form.js"></script>
+  <script src="js/jobs.js"></script>
+  <script src="js/schedule.js"></script>
+  <script src="js/machines.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/excel.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
